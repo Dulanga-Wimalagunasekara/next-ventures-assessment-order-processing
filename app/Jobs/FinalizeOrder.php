@@ -55,6 +55,11 @@ class FinalizeOrder implements ShouldQueue
             DB::commit();
             Log::info("Order finalized successfully: {$order->order_id}");
 
+            // Queue success notification
+            SendOrderNotification::dispatch($order->id, 'success', 'log')
+                ->onQueue('notifications')
+                ->delay(now()->addSeconds(5)); // Small delay to ensure transaction is committed
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Order finalization failed for {$order->order_id}: " . $e->getMessage());

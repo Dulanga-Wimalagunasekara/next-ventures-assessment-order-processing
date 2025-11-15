@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\KpiController;
 use App\Http\Controllers\Api\LeaderboardController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SystemController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,5 +28,14 @@ Route::prefix('leaderboard')->group(function () {
     Route::get('/customers/{customerId}/rank', [LeaderboardController::class, 'customerRank']);
     Route::get('/products', [LeaderboardController::class, 'products']);
     Route::post('/rebuild', [LeaderboardController::class, 'rebuild']);
+});
+
+// Notification endpoints
+Route::prefix('notifications')->group(function () {
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::get('/order/{orderId}', [NotificationController::class, 'byOrder']);
+    Route::get('/stats', [NotificationController::class, 'stats']);
+    Route::get('/recent', [NotificationController::class, 'recent']);
+    Route::post('/{id}/resend', [NotificationController::class, 'resend']);
 });
 

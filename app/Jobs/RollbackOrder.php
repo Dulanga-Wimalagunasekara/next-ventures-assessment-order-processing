@@ -61,6 +61,11 @@ class RollbackOrder implements ShouldQueue
             DB::commit();
             Log::info("Order rolled back successfully: {$order->order_id}");
 
+            // Queue failure notification
+            SendOrderNotification::dispatch($order->id, 'failed', 'log')
+                ->onQueue('notifications')
+                ->delay(now()->addSeconds(5)); // Small delay to ensure transaction is committed
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Rollback failed for order {$order->order_id}: " . $e->getMessage());

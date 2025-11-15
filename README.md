@@ -88,6 +88,14 @@ pending → reserve stock → process payment → finalize
 - Auto-updates on order completion
 - Fast rank lookups
 
+### ✅ Order Notification System
+- Email and log notifications for order status
+- Queued notification jobs (non-blocking)
+- Notification history tracking
+- Success/failure notifications
+- Resend failed notifications via API
+- Customer notification preferences
+
 ### ✅ Laravel Horizon
 - Real-time queue monitoring
 - Job metrics and throughput
@@ -125,6 +133,24 @@ GET  /api/leaderboard/products                    # Top products
 POST /api/leaderboard/rebuild                     # Rebuild leaderboard
 ```
 
+### Notifications
+```bash
+GET  /api/notifications                           # All notifications (with filters)
+GET  /api/notifications/order/{orderId}          # Notifications for specific order
+GET  /api/notifications/stats                    # Notification statistics
+GET  /api/notifications/recent                   # Recent notifications
+POST /api/notifications/{id}/resend              # Resend failed notification
+```
+
+**Notification Filters:**
+```bash
+GET /api/notifications?type=success              # Filter by type (success/failed)
+GET /api/notifications?channel=email             # Filter by channel (email/log)
+GET /api/notifications?status=sent               # Filter by status (pending/sent/failed)
+GET /api/notifications?customer_id=501           # Filter by customer
+GET /api/notifications?from_date=2025-11-10      # Date range filtering
+```
+
 ## 📊 Example Response
 
 **Daily KPIs:**
@@ -157,6 +183,52 @@ POST /api/leaderboard/rebuild                     # Rebuild leaderboard
 }
 ```
 
+**Notification Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "order_reference": "1001",
+      "notification_type": "success",
+      "channel": "log",
+      "customer_id": 501,
+      "order_status": "completed",
+      "total_amount": 51.00,
+      "message": "Order 1001 has been processed successfully...",
+      "status": "sent",
+      "sent_at": "2025-11-15T12:30:00.000000Z",
+      "created_at": "2025-11-15T12:30:00.000000Z"
+    }
+  ]
+}
+```
+
+**Notification Stats:**
+```json
+{
+  "success": true,
+  "data": {
+    "total_notifications": 45,
+    "success_notifications": 38,
+    "failed_notifications": 7,
+    "sent_notifications": 42,
+    "pending_notifications": 2,
+    "failed_sends": 1,
+    "by_channel": {
+      "email": 5,
+      "log": 40
+    },
+    "today": {
+      "total": 12,
+      "success": 10,
+      "failed": 2
+    }
+  }
+}
+```
+
 ## 🧪 Testing
 
 Run the test suite:
@@ -177,6 +249,15 @@ curl http://localhost:8000/api/kpis/daily
 
 # View leaderboard
 curl http://localhost:8000/api/leaderboard/customers
+
+# View notifications
+curl http://localhost:8000/api/notifications
+
+# View notification stats
+curl http://localhost:8000/api/notifications/stats
+
+# View notifications for specific order
+curl http://localhost:8000/api/notifications/order/1001
 ```
 
 ## 📁 Project Structure
@@ -188,23 +269,27 @@ app/
 ├── Http/Controllers/Api/
 │   ├── KpiController.php             # KPI endpoints
 │   ├── LeaderboardController.php     # Leaderboard endpoints
+│   ├── NotificationController.php    # Notification endpoints
 │   └── SystemController.php          # Health check
 ├── Jobs/
 │   ├── ProcessOrderWorkflow.php      # Workflow orchestrator
 │   ├── ReserveStock.php              # Stock reservation
 │   ├── ProcessPayment.php            # Payment processing
 │   ├── FinalizeOrder.php             # Order completion
-│   └── RollbackOrder.php             # Failure handling
+│   ├── RollbackOrder.php             # Failure handling
+│   └── SendOrderNotification.php     # Notification delivery
 ├── Models/
 │   ├── Order.php
 │   ├── Product.php
 │   ├── StockReservation.php
-│   └── Payment.php
+│   ├── Payment.php
+│   └── Notification.php             # Notification history
 ├── Observers/
 │   └── OrderObserver.php             # Auto-update leaderboard
 └── Services/
     ├── KpiService.php                # KPI calculations
-    └── LeaderboardService.php        # Customer ranking
+    ├── LeaderboardService.php        # Customer ranking
+    └── NotificationService.php       # Notification management
 ```
 
 ## 🗄️ Database Schema
@@ -213,6 +298,7 @@ app/
 - **products** - Product inventory
 - **stock_reservations** - Temporary stock holds
 - **payments** - Payment transactions
+- **notifications** - Notification history and status
 
 ## ⚙️ Configuration
 

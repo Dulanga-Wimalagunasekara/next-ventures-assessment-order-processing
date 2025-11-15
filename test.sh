@@ -78,7 +78,14 @@ echo "-----------------------------------"
 test_api "/api/leaderboard/products?limit=5" "Top 5 Products"
 echo ""
 
-echo "Step 7: Database Check"
+echo "Step 7: Notification System"
+echo "-----------------------------------"
+test_api "/api/notifications/stats" "Notification Statistics"
+echo ""
+test_api "/api/notifications/recent?limit=5" "Recent Notifications"
+echo ""
+
+echo "Step 8: Database Check"
 echo "-----------------------------------"
 echo "Checking database records..."
 php artisan tinker --execute="
@@ -89,21 +96,23 @@ echo 'Failed Orders: ' . \App\Models\Order::whereIn('status', ['failed', 'rollba
 echo 'Total Products: ' . \App\Models\Product::count() . PHP_EOL;
 echo 'Total Payments: ' . \App\Models\Payment::count() . PHP_EOL;
 echo 'Stock Reservations: ' . \App\Models\StockReservation::count() . PHP_EOL;
+echo 'Total Notifications: ' . \App\Models\Notification::count() . PHP_EOL;
 "
 echo ""
 
-echo "Step 8: Redis Cache Check"
+echo "Step 9: Redis Cache Check"
 echo "-----------------------------------"
 echo "Checking Redis keys..."
 redis-cli KEYS "*kpis*" 2>/dev/null || echo "Redis not available or no KPI keys"
 redis-cli KEYS "*leaderboard*" 2>/dev/null || echo "Redis not available or no leaderboard keys"
 echo ""
 
-echo "Step 9: Queue Status"
+echo "Step 10: Queue Status"
 echo "-----------------------------------"
 echo "Checking queue status..."
 redis-cli LLEN "queues:orders" 2>/dev/null && echo "orders queue" || echo "Queue not found"
 redis-cli LLEN "queues:default" 2>/dev/null && echo "default queue" || echo "Queue not found"
+redis-cli LLEN "queues:notifications" 2>/dev/null && echo "notifications queue" || echo "Queue not found"
 echo ""
 
 echo "========================================="
