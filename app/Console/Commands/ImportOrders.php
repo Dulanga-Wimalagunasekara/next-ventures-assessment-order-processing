@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\ProcessOrderWorkflow;
 use App\Models\Order;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 
 class ImportOrders extends Command
@@ -15,7 +15,7 @@ class ImportOrders extends Command
      *
      * @var string
      */
-    protected $signature = 'orders:import {file : The CSV file path to import}';
+    protected $signature = 'orders:import {file : The CSV file path to import} {--force : Re-import and re-queue existing orders}';
 
     /**
      * The console command description.
@@ -30,6 +30,7 @@ class ImportOrders extends Command
     public function handle()
     {
         $filePath = $this->argument('file');
+        $force = (bool) $this->option('force');
 
         if (!file_exists($filePath)) {
             $this->error("File not found: {$filePath}");
@@ -43,37 +44,77 @@ class ImportOrders extends Command
             $csv->setHeaderOffset(0);
 
             $records = $csv->getRecords();
-            $count = 0;
+            $imported = 0;
+            $skipped = 0;
+            $queued = 0;
+
             $bar = $this->output->createProgressBar();
             $bar->start();
 
             foreach ($records as $record) {
-                $totalAmount = (float)$record['quantity'] * (float)$record['unit_price'];
+                try {
+                    // Normalize fields
+                    $orderId = (string) ($record['order_id'] ?? '');
+                    if ($orderId === '') {
+                        $skipped++;
+                        $bar->advance();
+                        continue;
+                    }
 
-                $order = Order::create([
-                    'order_id' => $record['order_id'],
-                    'customer_id' => $record['customer_id'],
-                    'customer_name' => $record['customer_name'],
-                    'product_sku' => $record['product_sku'],
-                    'product_name' => $record['product_name'],
-                    'quantity' => $record['quantity'],
-                    'unit_price' => $record['unit_price'],
-                    'currency' => $record['currency'],
-                    'order_date' => $record['order_date'],
-                    'status' => 'pending',
-                    'total_amount' => $totalAmount,
-                ]);
+                    $existing = Order::where('order_id', $orderId)->first();
 
-                // Dispatch the order processing workflow job
-                ProcessOrderWorkflow::dispatch($order->id)->onQueue('orders');
+                    if ($existing && !$force) {
+                        // Skip duplicates by default
+                        $skipped++;
+                        $bar->advance();
+                        continue;
+                    }
 
-                $count++;
-                $bar->advance();
+                    // Calculate totals
+                    $quantity = (int) ($record['quantity'] ?? 0);
+                    $unitPrice = (float) ($record['unit_price'] ?? 0);
+                    $totalAmount = $quantity * $unitPrice;
+
+                    // Create or update
+                    $order = Order::updateOrCreate(
+                        ['order_id' => $orderId],
+                        [
+                            'customer_id' => (int) $record['customer_id'],
+                            'customer_name' => (string) $record['customer_name'],
+                            'product_sku' => (string) $record['product_sku'],
+                            'product_name' => (string) $record['product_name'],
+                            'quantity' => $quantity,
+                            'unit_price' => $unitPrice,
+                            'currency' => (string) ($record['currency'] ?? 'USD'),
+                            'order_date' => (string) $record['order_date'],
+                            // When forcing, reset status to pending to re-run workflow; otherwise new records start pending
+                            'status' => 'pending',
+                            'total_amount' => $totalAmount,
+                        ]
+                    );
+
+                    $imported++;
+
+                    // Queue workflow if newly created or forced
+                    if ($order->wasRecentlyCreated || $force) {
+                        ProcessOrderWorkflow::dispatch($order->id)->onQueue('orders');
+                        $queued++;
+                    }
+                } catch (\Throwable $e) {
+                    // Log and continue with next record
+                    Log::warning('ImportOrders: failed row', [
+                        'error' => $e->getMessage(),
+                        'row' => $record,
+                    ]);
+                    $skipped++;
+                } finally {
+                    $bar->advance();
+                }
             }
 
             $bar->finish();
             $this->newLine();
-            $this->info("Successfully imported and queued {$count} orders for processing.");
+            $this->info("Imported: {$imported}, Skipped: {$skipped}, Queued: {$queued}");
 
             return 0;
         } catch (\Exception $e) {
