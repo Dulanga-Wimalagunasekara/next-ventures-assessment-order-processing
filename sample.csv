@@ -1,0 +1,11 @@
+order_id,customer_id,customer_name,product_sku,product_name,quantity,unit_price,currency,order_date
+1001,501,John Doe,SKU-001,Wireless Mouse,2,25.50,USD,2025-11-10 10:15:23
+1002,502,Jane Smith,SKU-003,Mechanical Keyboard,1,79.99,USD,2025-11-10 11:45:10
+1003,503,Michael Brown,SKU-002,USB-C Charger,3,15.00,USD,2025-11-10 12:22:41
+1004,504,Sarah Wilson,SKU-004,HD Webcam,1,49.99,USD,2025-11-10 14:30:10
+1005,505,David Johnson,SKU-005,External SSD 1TB,2,129.99,USD,2025-11-10 15:10:55
+1006,501,John Doe,SKU-006,Noise Cancelling Headphones,1,199.00,USD,2025-11-11 09:25:13
+1007,506,Emily Davis,SKU-001,Wireless Mouse,1,25.50,USD,2025-11-11 10:02:18
+1008,507,Robert King,SKU-004,HD Webcam,2,49.99,USD,2025-11-11 10:50:12
+1009,503,Michael Brown,SKU-007,Portable Monitor,1,179.99,USD,2025-11-11 11:11:47
+1010,508,Linda Martinez,SKU-002,USB-C Charger,5,15.00,USD,2025-11-11 12:00:00
