@@ -210,12 +210,38 @@ return [
             'timeout' => 300,
             'nice' => 0,
         ],
+        'supervisor-refunds' => [
+            'connection' => 'redis',
+            'queue' => ['refunds'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 3,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 120,
+            'nice' => 0,
+        ],
         'supervisor-notifications' => [
             'connection' => 'redis',
             'queue' => ['notifications'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 3,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 60,
+            'nice' => 0,
+        ],
+        'supervisor-analytics' => [
+            'connection' => 'redis',
+            'queue' => ['kpis', 'leaderboard'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 2,
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
@@ -245,8 +271,18 @@ return [
                 'balanceMaxShift' => 2,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-refunds' => [
+                'maxProcesses' => 10,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
             'supervisor-notifications' => [
                 'maxProcesses' => 10,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+            'supervisor-analytics' => [
+                'maxProcesses' => 5,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
@@ -261,8 +297,14 @@ return [
             'supervisor-orders' => [
                 'maxProcesses' => 5,
             ],
+            'supervisor-refunds' => [
+                'maxProcesses' => 3,
+            ],
             'supervisor-notifications' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-analytics' => [
+                'maxProcesses' => 2,
             ],
             'supervisor-default' => [
                 'maxProcesses' => 3,

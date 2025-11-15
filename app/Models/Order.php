@@ -42,5 +42,42 @@ class Order extends Model
     {
         return $this->hasMany(Notification::class);
     }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * Get total refunded amount for this order
+     */
+    public function getTotalRefundedAttribute(): float
+    {
+        return $this->refunds()->completed()->sum('refund_amount');
+    }
+
+    /**
+     * Get remaining refundable amount
+     */
+    public function getRefundableAmountAttribute(): float
+    {
+        return max(0, $this->total_amount - $this->total_refunded);
+    }
+
+    /**
+     * Check if order is fully refunded
+     */
+    public function isFullyRefunded(): bool
+    {
+        return $this->total_refunded >= $this->total_amount;
+    }
+
+    /**
+     * Check if order has any refunds
+     */
+    public function hasRefunds(): bool
+    {
+        return $this->refunds()->completed()->exists();
+    }
 }
 

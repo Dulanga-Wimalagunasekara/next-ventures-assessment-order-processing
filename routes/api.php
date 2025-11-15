@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\KpiController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\SystemController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -37,5 +38,16 @@ Route::prefix('notifications')->group(function () {
     Route::get('/stats', [NotificationController::class, 'stats']);
     Route::get('/recent', [NotificationController::class, 'recent']);
     Route::post('/{id}/resend', [NotificationController::class, 'resend']);
+});
+
+// Refund endpoints
+Route::prefix('refunds')->group(function () {
+    Route::post('/', [RefundController::class, 'create']);
+    Route::get('/', [RefundController::class, 'index']);
+    Route::get('/stats', [RefundController::class, 'stats']);
+    Route::get('/{refundId}', [RefundController::class, 'show']);
+    Route::get('/order/{orderId}', [RefundController::class, 'byOrder']);
+    Route::post('/{refundId}/cancel', [RefundController::class, 'cancel']);
+    Route::post('/{refundId}/retry', [RefundController::class, 'retry']);
 });
 

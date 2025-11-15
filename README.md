@@ -88,6 +88,14 @@ pending → reserve stock → process payment → finalize
 - Auto-updates on order completion
 - Fast rank lookups
 
+### ✅ Order Refund System
+- Partial and full refund processing
+- Asynchronous refund processing with queued jobs
+- Real-time KPI and leaderboard updates
+- Idempotent refund operations (safe to retry)
+- Comprehensive refund tracking and status
+- Refund validation and business rules
+
 ### ✅ Order Notification System
 - Email and log notifications for order status
 - Queued notification jobs (non-blocking)
@@ -142,13 +150,36 @@ GET  /api/notifications/recent                   # Recent notifications
 POST /api/notifications/{id}/resend              # Resend failed notification
 ```
 
-**Notification Filters:**
+### Refunds
 ```bash
-GET /api/notifications?type=success              # Filter by type (success/failed)
-GET /api/notifications?channel=email             # Filter by channel (email/log)
-GET /api/notifications?status=sent               # Filter by status (pending/sent/failed)
-GET /api/notifications?customer_id=501           # Filter by customer
-GET /api/notifications?from_date=2025-11-10      # Date range filtering
+POST /api/refunds                             # Create new refund request
+GET  /api/refunds                             # List all refunds (with filters)
+GET  /api/refunds/stats                       # Refund statistics
+GET  /api/refunds/{refundId}                  # Get specific refund details
+GET  /api/refunds/order/{orderId}             # Refunds for specific order
+POST /api/refunds/{refundId}/cancel           # Cancel pending refund
+POST /api/refunds/{refundId}/retry            # Retry failed refund
+```
+
+**Refund Creation:**
+```bash
+POST /api/refunds
+{
+  "order_id": "1001",
+  "refund_amount": 25.50,
+  "refund_type": "partial",
+  "reason": "Defective item",
+  "description": "Customer reported item not working"
+}
+```
+
+**Refund Filters:**
+```bash
+GET /api/refunds?status=completed             # Filter by status
+GET /api/refunds?type=partial                 # Filter by type (partial/full)
+GET /api/refunds?customer_id=501               # Filter by customer
+GET /api/refunds?order_id=1001                # Filter by order
+GET /api/refunds?from_date=2025-11-10         # Date range filtering
 ```
 
 ## 📊 Example Response
@@ -180,6 +211,47 @@ GET /api/notifications?from_date=2025-11-10      # Date range filtering
       "total_spent": 2345.67
     }
   ]
+}
+```
+
+**Refund Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "refund_id": "REF-1001-A3B4C5",
+    "order_id": "1001",
+    "refund_amount": 25.50,
+    "refund_type": "partial",
+    "status": "completed",
+    "customer_id": 501,
+    "reason": "Defective item",
+    "requested_at": "2025-11-15T10:30:00.000000Z",
+    "processed_at": "2025-11-15T10:35:00.000000Z",
+    "transaction_id": "REF-A3B4C5D6E7F8"
+  }
+}
+```
+
+**Refund Stats:**
+```json
+{
+  "success": true,
+  "data": {
+    "total_refunds": 45,
+    "completed_refunds": 40,
+    "pending_refunds": 3,
+    "failed_refunds": 2,
+    "partial_refunds": 30,
+    "full_refunds": 15,
+    "total_refund_amount": 2345.67,
+    "average_refund_amount": 52.13,
+    "today": {
+      "refunds": 5,
+      "completed": 4,
+      "amount": 180.50
+    }
+  }
 }
 ```
 
@@ -258,6 +330,20 @@ curl http://localhost:8000/api/notifications/stats
 
 # View notifications for specific order
 curl http://localhost:8000/api/notifications/order/1001
+
+# Create refund request
+curl -X POST http://localhost:8000/api/refunds \
+  -H "Content-Type: application/json" \
+  -d '{"order_id":"1001","refund_amount":25.50,"refund_type":"partial","reason":"Defective item"}'
+
+# View refunds
+curl http://localhost:8000/api/refunds
+
+# View refund stats
+curl http://localhost:8000/api/refunds/stats
+
+# View refunds for specific order
+curl http://localhost:8000/api/refunds/order/1001
 ```
 
 ## 📁 Project Structure
@@ -270,6 +356,7 @@ app/
 │   ├── KpiController.php             # KPI endpoints
 │   ├── LeaderboardController.php     # Leaderboard endpoints
 │   ├── NotificationController.php    # Notification endpoints
+│   ├── RefundController.php          # Refund endpoints
 │   └── SystemController.php          # Health check
 ├── Jobs/
 │   ├── ProcessOrderWorkflow.php      # Workflow orchestrator
@@ -277,13 +364,17 @@ app/
 │   ├── ProcessPayment.php            # Payment processing
 │   ├── FinalizeOrder.php             # Order completion
 │   ├── RollbackOrder.php             # Failure handling
-│   └── SendOrderNotification.php     # Notification delivery
+│   ├── SendOrderNotification.php     # Notification delivery
+│   ├── ProcessRefund.php             # Refund processing
+│   ├── UpdateRefundKpis.php          # Real-time KPI updates
+│   └── UpdateCustomerLeaderboardAfterRefund.php # Leaderboard updates
 ├── Models/
 │   ├── Order.php
 │   ├── Product.php
 │   ├── StockReservation.php
 │   ├── Payment.php
-│   └── Notification.php             # Notification history
+│   ├── Notification.php             # Notification history
+│   └── Refund.php                   # Refund tracking
 ├── Observers/
 │   └── OrderObserver.php             # Auto-update leaderboard
 └── Services/
@@ -299,6 +390,7 @@ app/
 - **stock_reservations** - Temporary stock holds
 - **payments** - Payment transactions
 - **notifications** - Notification history and status
+- **refunds** - Refund requests and processing status
 
 ## ⚙️ Configuration
 
@@ -312,14 +404,6 @@ REDIS_PORT=6379
 ### Cache (Redis)
 ```env
 CACHE_STORE=redis
-```
-
-### RabbitMQ (Optional)
-```env
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=guest
 ```
 
 ### Horizon
@@ -449,5 +533,5 @@ For issues:
 
 ---
 
-**Built with Laravel 12 + Horizon + Redis + RabbitMQ**
+**Built with Laravel 12 + Horizon + Redis**
 

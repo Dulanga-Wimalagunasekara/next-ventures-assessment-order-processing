@@ -78,14 +78,20 @@ echo "-----------------------------------"
 test_api "/api/leaderboard/products?limit=5" "Top 5 Products"
 echo ""
 
-echo "Step 7: Notification System"
+echo "Step 7: Refund System"
+echo "-----------------------------------"
+test_api "/api/refunds/stats" "Refund Statistics"
+echo ""
+# Note: Refund creation requires POST with JSON body, tested separately in demo-refunds.sh
+
+echo "Step 8: Notification System"
 echo "-----------------------------------"
 test_api "/api/notifications/stats" "Notification Statistics"
 echo ""
 test_api "/api/notifications/recent?limit=5" "Recent Notifications"
 echo ""
 
-echo "Step 8: Database Check"
+echo "Step 9: Database Check"
 echo "-----------------------------------"
 echo "Checking database records..."
 php artisan tinker --execute="
@@ -97,6 +103,7 @@ echo 'Total Products: ' . \App\Models\Product::count() . PHP_EOL;
 echo 'Total Payments: ' . \App\Models\Payment::count() . PHP_EOL;
 echo 'Stock Reservations: ' . \App\Models\StockReservation::count() . PHP_EOL;
 echo 'Total Notifications: ' . \App\Models\Notification::count() . PHP_EOL;
+echo 'Total Refunds: ' . \App\Models\Refund::count() . PHP_EOL;
 "
 echo ""
 
